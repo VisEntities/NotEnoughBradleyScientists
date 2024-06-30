@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Oxide.Plugins
 {
     [Info("Not Enough Bradley Scientists", "VisEntities", "1.0.0")]
-    [Description(" ")]
+    [Description("Changes how many scientists spawn when the Bradley APC is attacked.")]
     public class NotEnoughBradleyScientists : RustPlugin
     {
         #region Fields
