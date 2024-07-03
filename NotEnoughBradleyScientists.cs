@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Not Enough Bradley Scientists", "VisEntities", "1.0.0")]
+    [Info("Not Enough Bradley Scientists", "VisEntities", "1.0.1")]
     [Description("Changes how many scientists spawn when the Bradley APC is attacked.")]
     public class NotEnoughBradleyScientists : RustPlugin
     {
@@ -92,6 +92,12 @@ namespace Oxide.Plugins
 
         private void OnScientistSpawnPositionsGenerated(BaseEntity attacker, List<GameObjectRef> scientistPrefabs, List<Vector3> spawnPositions)
         {
+            if (spawnPositions == null || spawnPositions.Count == 0)
+                return;
+
+            if (scientistPrefabs == null || scientistPrefabs.Count == 0)
+                return;
+
             ResizeSpawnPositionsList(spawnPositions, _config.NumberOfScientistsToSpawn);
             ResizeScientistPrefabsList(scientistPrefabs, _config.NumberOfScientistsToSpawn);
         }
