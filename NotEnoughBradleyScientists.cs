@@ -1,12 +1,19 @@
-﻿using HarmonyLib;
+﻿/*
+ * Copyright (C) 2024 Game4Freak.io
+ * This mod is provided under the Game4Freak EULA.
+ * Full legal terms can be found at https://game4freak.io/eula/
+ */
+
+using HarmonyLib;
 using Newtonsoft.Json;
 using Oxide.Core;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Oxide.Plugins
 {
-    [Info("Not Enough Bradley Scientists", "VisEntities", "1.0.1")]
+    [Info("Not Enough Bradley Scientists", "VisEntities", "1.1.0")]
     [Description("Changes how many scientists spawn when the Bradley APC is attacked.")]
     public class NotEnoughBradleyScientists : RustPlugin
     {
@@ -25,8 +32,20 @@ namespace Oxide.Plugins
             [JsonProperty("Version")]
             public string Version { get; set; }
 
-            [JsonProperty("Number Of Scientists To Spawn")]
-            public int NumberOfScientistsToSpawn { get; set; }
+            [JsonProperty("Road Bradley")]
+            public BradleyConfig RoadBradley { get; set; }
+
+            [JsonProperty("Launch Site Bradley")]
+            public BradleyConfig LaunchSiteBradley { get; set; }
+        }
+
+        public class BradleyConfig
+        {
+            [JsonProperty("Minimum Number Of Scientists To Spawn")]
+            public int MinimumNumberOfScientistsToSpawn { get; set; }
+
+            [JsonProperty("Maximum Number Of Scientists To Spawn")]
+            public int MaximumNumberOfScientistsToSpawn { get; set; }
         }
 
         protected override void LoadConfig()
@@ -59,6 +78,11 @@ namespace Oxide.Plugins
             if (string.Compare(_config.Version, "1.0.0") < 0)
                 _config = defaultConfig;
 
+            if (string.Compare(_config.Version, "1.1.0") < 0)
+            {
+                _config = defaultConfig;
+            }
+
             PrintWarning("Config update complete! Updated from version " + _config.Version + " to " + Version.ToString());
             _config.Version = Version.ToString();
         }
@@ -68,7 +92,16 @@ namespace Oxide.Plugins
             return new Configuration
             {
                 Version = Version.ToString(),
-                NumberOfScientistsToSpawn = 6
+                RoadBradley = new BradleyConfig
+                {
+                    MinimumNumberOfScientistsToSpawn = 4,
+                    MaximumNumberOfScientistsToSpawn = 6
+                },
+                LaunchSiteBradley = new BradleyConfig
+                {
+                    MinimumNumberOfScientistsToSpawn = 4,
+                    MaximumNumberOfScientistsToSpawn = 6
+                }
             };
         }
 
@@ -90,16 +123,25 @@ namespace Oxide.Plugins
             _plugin = null;
         }
 
-        private void OnScientistSpawnPositionsGenerated(BaseEntity attacker, List<GameObjectRef> scientistPrefabs, List<Vector3> spawnPositions)
+        private void OnScientistSpawnPositionsGenerated(BradleyAPC bradley, BaseEntity attacker, List<GameObjectRef> scientistPrefabs, List<Vector3> spawnPositions)
         {
+            if (bradley == null)
+                return;
+
             if (spawnPositions == null || spawnPositions.Count == 0)
                 return;
 
             if (scientistPrefabs == null || scientistPrefabs.Count == 0)
                 return;
+           
+            BradleyConfig bradleyConfig = _config.LaunchSiteBradley;
+            if (bradley.RoadSpawned)
+                bradleyConfig = _config.RoadBradley;
 
-            ResizeSpawnPositionsList(spawnPositions, _config.NumberOfScientistsToSpawn);
-            ResizeScientistPrefabsList(scientistPrefabs, _config.NumberOfScientistsToSpawn);
+            int numberOfScientistsToSpawn = Random.Range(bradleyConfig.MinimumNumberOfScientistsToSpawn, bradleyConfig.MaximumNumberOfScientistsToSpawn + 1);
+
+            ResizeSpawnPositionsList(spawnPositions, numberOfScientistsToSpawn);
+            ResizeScientistPrefabsList(scientistPrefabs, numberOfScientistsToSpawn);
         }
 
         #endregion Oxide Hooks
@@ -109,9 +151,9 @@ namespace Oxide.Plugins
         [HarmonyPatch(typeof(BradleyAPC), "CanDeployScientists")]
         public static class BradleyAPC_CanDeployScientists_Patch
         {
-            public static void Postfix(BaseEntity attacker, List<GameObjectRef> scientistPrefabs, List<Vector3> spawnPositions)
+            public static void Postfix(BradleyAPC __instance, BaseEntity attacker, List<GameObjectRef> scientistPrefabs, List<Vector3> spawnPositions)
             {
-                Interface.CallHook("OnScientistSpawnPositionsGenerated", attacker, scientistPrefabs, spawnPositions);
+                Interface.CallHook("OnScientistSpawnPositionsGenerated", __instance, attacker, scientistPrefabs, spawnPositions);
             }
         }
 
