@@ -7,21 +7,21 @@
 using HarmonyLib;
 using Newtonsoft.Json;
 using Oxide.Core;
+using Oxide.Core.Plugins;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace Oxide.Plugins
 {
-    [Info("Not Enough Bradley Scientists", "VisEntities", "1.1.0")]
-    [Description("Changes how many scientists spawn when the Bradley APC is attacked.")]
+    [Info("Not Enough Bradley Scientists", "VisEntities", "1.1.1")]
+    [Description("Allows customization of the scientist count deployed by Bradley APC.")]
     public class NotEnoughBradleyScientists : RustPlugin
     {
         #region Fields
 
         private static NotEnoughBradleyScientists _plugin;
         private static Configuration _config;
-        private Harmony _harmony;
 
         #endregion Fields
 
@@ -112,13 +112,10 @@ namespace Oxide.Plugins
         private void Init()
         {
             _plugin = this;
-            _harmony = new Harmony(Name + "PATCH");
-            _harmony.PatchAll();
         }
 
         private void Unload()
         {
-            _harmony.UnpatchAll(Name + "PATCH");
             _config = null;
             _plugin = null;
         }
@@ -145,19 +142,6 @@ namespace Oxide.Plugins
         }
 
         #endregion Oxide Hooks
-
-        #region Harmony Patches
-
-        [HarmonyPatch(typeof(BradleyAPC), "CanDeployScientists")]
-        public static class BradleyAPC_CanDeployScientists_Patch
-        {
-            public static void Postfix(BradleyAPC __instance, BaseEntity attacker, List<GameObjectRef> scientistPrefabs, List<Vector3> spawnPositions)
-            {
-                Interface.CallHook("OnScientistSpawnPositionsGenerated", __instance, attacker, scientistPrefabs, spawnPositions);
-            }
-        }
-
-        #endregion Harmony Patches
 
         #region Spawn Position Cloning
 
@@ -208,5 +192,19 @@ namespace Oxide.Plugins
         }
 
         #endregion Scientist Prefab Duplication
+
+        #region Harmony Patches
+
+        [AutoPatch]
+        [HarmonyPatch(typeof(BradleyAPC), "CanDeployScientists")]
+        public static class BradleyAPC_CanDeployScientists_Patch
+        {
+            public static void Postfix(BradleyAPC __instance, BaseEntity attacker, List<GameObjectRef> scientistPrefabs, List<Vector3> spawnPositions)
+            {
+                Interface.CallHook("OnScientistSpawnPositionsGenerated", __instance, attacker, scientistPrefabs, spawnPositions);
+            }
+        }
+
+        #endregion Harmony Patches
     }
 }
